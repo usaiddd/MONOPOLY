@@ -4,6 +4,7 @@
 #include<cstdlib>
 #include<ctime>
 #include<map>
+#include<conio.h>
 using namespace std;
 
 class Player;
@@ -22,46 +23,56 @@ public:
     static void show_diceroll(int roll1, int roll2, int index);
     static void next_turn(int playerIdx);
     static void apply_rule(string player,vector<Rule*>Rules);
-    static void show_rules(vector<string>& ruleTxts);
+    static void show_rules(vector<string> ruleTxts);
     static void end_game();
     static void showBoard();
+    ~GameController(){}
 };
 
 class Rule{
 public:
     virtual void apply_rule(){}
     virtual string getTitle()=0;
+    ~Rule(){}
 };
 class Skip:public Rule{
 public:
     void apply_rule(){}
     string getTitle();
+    ~Skip(){};
 };
-string Skip::getTitle(){
-    return "skip";
-}
 class Buy:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~Buy(){}
 };
 class Rent:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~Rent(){}
 };
 
 class GeneralRule:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~GeneralRule(){}
 };
 
+class community1:public Rule{
+    public:
+        void apply_rule();
+        string getTitle();
+        ~community1(){}
+    };
 
 class community2:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~community2(){}
 };
 
 
@@ -69,48 +80,56 @@ class community3:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~community3(){}
 };
 
 class community4:public Rule{
 public:
      void apply_rule();
     string getTitle();
+    ~community4(){}
 };
 
 class community5:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~community5(){}
 };
 
 class chance1:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~chance1(){}
 };
 
 class chance2:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~chance2(){}
 };
 
 class chance3:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~chance3(){}
 };
 
 class chance4:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~chance4(){}
 };
 
 class chance5:public Rule{
 public:
     void apply_rule();
     string getTitle();
+    ~chance5(){}
 };
 
 class JailRule:public Rule{
@@ -119,9 +138,10 @@ private:
     static int no_of_players;
     vector<Player*>players ;
 public:
-    void apply_rule(Player &player);
-    bool check_jail(Player &player);
+    void apply_rule();
+    bool check_jail();
     string getTitle();
+    ~JailRule(){}
 };
 
 class Player{
@@ -141,16 +161,19 @@ public:
     int change_index(int i);
     string get_name();
     int get_index();
+    ~Player(){}
 };
 
 class Tile{
 public:
     virtual vector<Rule*> get_rules()=0;
+    ~Tile(){}
 };
 class Asset : public Tile{
 public:
     virtual int get_price()=0;
     virtual int get_rent()=0;
+    ~Asset(){}
 };
 class Event : public Tile{
 };
@@ -163,6 +186,7 @@ public:
         this->name=name;
     }
     vector<Rule*> get_rules();
+    ~CommunityChest(){}
 };
 
 class Chance:public Event{
@@ -174,6 +198,7 @@ public:
         this->name=name;
     }
     vector<Rule*> get_rules();
+    ~Chance(){}
 };
 
 class JailEvent: public Event {
@@ -184,6 +209,7 @@ class JailEvent: public Event {
         this->name=name;
     }
     vector<Rule*> get_rules();
+    ~JailEvent(){}
 };
 
 class TaxEvent: public Event {
@@ -197,6 +223,7 @@ public:
     }
     int get_tax();
     vector<Rule*> get_rules();
+    ~TaxEvent(){}
 };
 
 class Property : public Asset{
@@ -218,6 +245,7 @@ public:
     int get_rent();
     void assignOwner(Player *player);
     int get_price();
+    ~Property(){}
 };
 
 class Commodity : public Asset{
@@ -236,6 +264,7 @@ public:
     int get_price();
     void assignOwner(Player *player);
     int get_rent();
+    ~Commodity(){}
 };
 
 int main()
@@ -247,6 +276,9 @@ int main()
 
 vector<Rule*> createRules() {
     vector<Rule*> rules ;
+}
+string Skip::getTitle(){
+    return "skip";
 }
 
 void Buy::apply_rule(){
@@ -278,11 +310,6 @@ void GeneralRule::apply_rule(){
 string GeneralRule::getTitle(){
     return "";
 }
-class community1:public Rule{
-public:
-    void apply_rule();
-    string getTitle();
-};
 void community1::apply_rule(){
     Player*player=GameController::currentPlayer;
     player->edit_index(0);
@@ -306,7 +333,7 @@ string community3::getTitle(){
     return " Doctor's fees. {fee} Pay $50 ";
 }
 void community4::apply_rule(){
-    Player*player=GameController::currentPlayer;
+    Player* player=GameController::currentPlayer;
     player->change_balance(50);
 }
 string community4::getTitle(){
@@ -314,14 +341,14 @@ string community4::getTitle(){
 }
 
 void community5::apply_rule(){
-    Player*player=GameController::currentPlayer;
+    Player* player=GameController::currentPlayer;
     player->change_balance(100);
 }
 string community5::getTitle(){
     return " Life insurance matures , Collect $100  ";
 }
 void chance1::apply_rule(){
-    Player*player=GameController::currentPlayer;
+    Player* player=GameController::currentPlayer;
     player->edit_index(10);
     player->change_balance(0);
 }
@@ -329,46 +356,40 @@ string chance1::getTitle(){
     return" Go to Jail. Go directly to Jail. Do not pass GO, do not collect $200. ";
 }
 void chance2::apply_rule(){
-    Player*player=GameController::currentPlayer;
+    Player* player=GameController::currentPlayer;
     player->change_balance(-15);
 }
 string chance2::getTitle(){
     return " Pay Poor Tax of $15 ";
 }
 void chance3::apply_rule(){
-    Player*player=GameController::currentPlayer;
+    Player* player=GameController::currentPlayer;
     player->change_balance(-20);
 }
 string chance3::getTitle(){
     return " “Drunk in charge” fine $20 ";
 }
 void chance4::apply_rule(){
-    Player*player=GameController::currentPlayer;
+    Player* player=GameController::currentPlayer;
     player->change_balance(-150);
 }
 string chance4::getTitle(){
     return " Pay school tax of $150 ";
 }
 void chance5::apply_rule(){
-    Player*player=GameController::currentPlayer;
+    Player* player=GameController::currentPlayer;
     player->change_balance(100);
 }
 string chance5::getTitle(){
     return " our Xmas fund matures. Collect $100 ";
 }
-void JailRule::apply_rule(Player &player){
-    this -> players[1]=&player;
+void JailRule::apply_rule(){
 }
 string JailRule::getTitle(){
-    return NULL;
+    return "";
 }
-bool JailRule::check_jail(Player &player){
-    if(players.empty()){
-        return false;
-    }
-    else{
+bool JailRule::check_jail(){
 
-    }
 }
 int JailRule::turns=0;
 void Player::change_balance(int sum){
@@ -389,14 +410,14 @@ int Player::get_index(){
 }
 vector<Rule*> CommunityChest::get_rules(){
     srand(time(0));
-    int random=3+rand()%8;
+    int random=3+rand()%5;
     vector<Rule*> rules={GameController::rules[random]};
     return rules;
 }
 
 vector<Rule*> Chance::get_rules(){
     srand(time(0));
-    int random=8+rand()%13;
+    int random=8+rand()%5;
     vector<Rule*> rules={GameController::rules[random]};
     return rules;
 }
@@ -457,7 +478,9 @@ vector<Rule*> Commodity::get_rules(){
         }
     }
     else{
-        vector<Rule*>rules={GameController::rules[0], GameController::rules[1]} ;
+        vector<Rule*>rules;
+        rules.push_back(GameController::rules[0]);
+        rules.push_back(GameController::rules[1]);
         return rules;
     }
 }
@@ -544,7 +567,7 @@ vector <Tile*> GameController::board={
 
 vector<string> GameController::get_rule_txt(){
     vector<string> ruleTxts;
-    vector<Rule*>rules=(board[currentPlayer->get_index()])->get_rules();
+    vector<Rule*>rules=currentTile->get_rules();
     for(Rule *rule : rules){
         ruleTxts.push_back(rule->getTitle());
     }
@@ -552,32 +575,32 @@ vector<string> GameController::get_rule_txt(){
 }
 
 void GameController::show_diceroll(int roll1, int roll2, int index){
-    cout<<roll1;
-    cout<<roll2;
-    cout<<index;
+    cout<<"roll 1 : "<<roll1<<endl;
+    cout<<"roll 2 : "<<roll2<<endl;
+    cout<<"current player index : "<<index<<endl;
 }
 
 void GameController::next_turn(int playerIdx){
     srand(time(0));
     int roll1=1+rand()%6;
     int roll2=1+rand()%6;
-    Player *player = players.at(playerIdx);
-    show_diceroll(roll1,roll2, player->change_index(roll1+roll2));
+    currentPlayer = players.at(playerIdx);
+    show_diceroll(roll1,roll2, currentPlayer->change_index(5));
+    currentTile = board[currentPlayer->get_index()];
     vector<string> strArr = get_rule_txt();
-    if(strArr.size()>1) {
-        show_rules(strArr);
-    }
+    show_rules(strArr);
 }
 
 void GameController::apply_rule(string player,vector<Rule*>Rules){
 
 }
-void GameController::show_rules(vector<string>& ruleTxts) {
-    cout<<"hello";
+void GameController::show_rules(vector<string> ruleTxts) {
+    cout<<"rule : "<<ruleTxts[0];
 }
 void GameController::end_game(){
 
 }
 void GameController::showBoard() {
+    cout<<"board has been initialised"<<endl;
 }
 
