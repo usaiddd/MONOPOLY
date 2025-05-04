@@ -25,7 +25,7 @@ public:
     static void next_turn();
     static void Apply_rule(int ruleIndex);
     static void show_rules(vector<string> ruleTxts);
-    static void end_game();
+    static bool end_game();
     static void showBoard();
     ~GameController(){}
 };
@@ -149,16 +149,17 @@ class Player{
 private:
     string name;
     int balance;
-    vector<Tile*>owned;
+    vector<Asset*>owned;
     int index;
     int in_jail_chances=0;
     
 public:
     Player(string name){
         this -> name=name;
-        balance=1500;
+        balance=100;
         index=0;
     }
+    vector<Asset*> Owned();
     int getBalance();
     void pushProperty(Asset * owns);
     bool checkbankcorrupcy ();
@@ -408,6 +409,9 @@ int JailRule::turns=0;
 int Player::getBalance(){
     return balance;
 }
+vector<Asset*> Player::Owned(){
+    return owned;
+}
 void Player::pushProperty(Asset*owns){
     owned.push_back(owns);
 }
@@ -479,6 +483,11 @@ vector<Rule*> Property::get_rules(){
         }
         else{
             player->change_balance(rent);
+            for(Player*plyr:GameController::players){
+                if(plyr->get_name()==owner->get_name()){
+                    plyr->change_balance(rent);
+                }
+            }
             vector<Rule*> rules={GameController::rules[2]};
             return rules;
         }
@@ -506,11 +515,15 @@ vector<Rule*> Commodity::get_rules(){
             return Rules;
         }
         else{
-            
             int roll1=1+rand()%6;
             int roll2=1+rand()%6;
             rent=roll1+roll2;
             player->change_balance(-rent);
+            for(Player*plyr:GameController::players){
+                if(plyr->get_name()==owner->get_name()){
+                    plyr->change_balance(rent);
+                }
+            }
             vector<Rule*>rules={GameController::rules[2]};
             return rules;
         }
@@ -643,16 +656,30 @@ void GameController::show_rules(vector<string> ruleTxts){
     }
     Apply_rule(0);
 }
-void GameController::end_game(){
+bool GameController::end_game(){
+    if((players[0]->checkbankcorrupcy() && players[1]->checkbankcorrupcy() && players[2]->checkbankcorrupcy())||(players[0]->checkbankcorrupcy() && players[1]->checkbankcorrupcy() && players[3]->checkbankcorrupcy())||(players[0]->checkbankcorrupcy() && players[2]->checkbankcorrupcy() && players[3]->checkbankcorrupcy())||(players[1]->checkbankcorrupcy() && players[2]->checkbankcorrupcy() && players[3]->checkbankcorrupcy())){
+        return true;
+    }
+    return false;
 }
 void GameController::showBoard() {
     cout<<"board has been initialised"<<endl;
-    for(int i=0;i<6;i++){
+    for(int i=0;i<10;i++){
         GameController::next_turn();
         GameController::Apply_rule(0);
         GameController::playerIndx = (GameController::playerIndx + 1) % ((GameController::players.size())-1);
         cout<<"balance :"<<currentPlayer->getBalance()<<endl;
         cout<<currentPlayer->get_name()<<endl;
-    } 
+    }
+    while(currentPlayer->checkbankcorrupcy()){
+        playerIndx+=1;
+        currentPlayer=players.at(playerIndx);
+    }
+    int total=0;
+    for(Asset *tile : currentPlayer->Owned()){
+        total+=tile->get_price();
+    }
+    total+=currentPlayer->getBalance();
+    cout<<"jeet gaya "<<currentPlayer->get_name()<<" bkc yayayayayayay "<<"with the assets of : "<<total;
 }
 
