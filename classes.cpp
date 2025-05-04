@@ -3,9 +3,16 @@
 #include<vector>
 #include<cstdlib>
 #include<ctime>
-#include<map>
 #include<conio.h>
+#include <random>
 using namespace std;
+
+int getRandomNumber(int lower, int upper) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(lower, upper);
+    return dist(gen);
+}
 
 class Player;
 class Property;
@@ -14,18 +21,19 @@ class Asset;
 class Rule;
 class GameController{
 public:
-    static Tile *currentTile;
+    static int playerIndx;
     static Player *currentPlayer;
     static vector <Rule*> rules;
     static vector<Player*> players;
     static vector <Tile*> board;
     static vector<string> get_rule_txt();
-    static void show_diceroll(int roll1, int roll2, int index);
-    static void next_turn(int playerIdx);
-    static void apply_rule(string player,vector<Rule*>Rules);
+    static int show_diceroll();
+    static void next_turn();
+    static void Apply_rule(int ruleIndex);
     static void show_rules(vector<string> ruleTxts);
     static void end_game();
     static void showBoard();
+    static void printTileInfo(Tile *tile);
     ~GameController(){}
 };
 
@@ -150,12 +158,18 @@ private:
     int balance;
     vector<Tile*>owned;
     int index;
+    int in_jail_chances=0;
+    
 public:
     Player(string name){
         this -> name=name;
         balance=1500;
         index=0;
     }
+    void pushProperty(Asset * owns);
+    bool checkbankcorrupcy ();
+    void jail_update();
+    bool jail_status();
     void change_balance(int sum);
     void edit_index(int i);
     int change_index(int i);
@@ -270,8 +284,18 @@ public:
 int main()
 {
     GameController::showBoard();
-    GameController::next_turn(0);
-
+    GameController::next_turn();
+    GameController::Apply_rule(0);
+    GameController::playerIndx+=1;
+    if(GameController::playerIndx==4){
+        GameController::playerIndx=0;
+    }
+    GameController::next_turn();
+    GameController::Apply_rule(0);
+    GameController::playerIndx+=1;
+    if(GameController::playerIndx==4){
+        GameController::playerIndx=0;
+    }
 }
 
 vector<Rule*> createRules() {
@@ -283,7 +307,8 @@ string Skip::getTitle(){
 
 void Buy::apply_rule(){
     Player *player= GameController::currentPlayer;
-    Asset *currentAsset = (Asset *)GameController::currentTile;
+    Asset *currentAsset = (Asset *)GameController::GameController::board[GameController::currentPlayer->get_index()];
+    player->pushProperty(currentAsset);
     int price = currentAsset->get_price();
     player->change_balance(-price);
 }
@@ -293,7 +318,7 @@ string Buy::getTitle(){
 
 void Rent::apply_rule(){
     Player*player=GameController::currentPlayer;
-        Asset *currentAsset = (Asset *)GameController::currentTile;
+        Asset *currentAsset = (Asset *)GameController::GameController::board[GameController::currentPlayer->get_index()];
         int rent = currentAsset->get_rent();
         player->change_balance(rent);
 }
@@ -303,7 +328,7 @@ string Rent::getTitle(){
 
 void GeneralRule::apply_rule(){
     Player*player=GameController::currentPlayer;
-    TaxEvent *currentAsset = (TaxEvent *)GameController::currentTile;
+    TaxEvent *currentAsset = (TaxEvent *)GameController::board[GameController::currentPlayer->get_index()];
     int tax = currentAsset->get_tax();
     player->change_balance(tax);
 }
@@ -386,12 +411,38 @@ string chance5::getTitle(){
 void JailRule::apply_rule(){
 }
 string JailRule::getTitle(){
-    return "";
+    return "YOU HAVE BEEN ARRESTED!!!(you can't move for next 2 turns TTwTT)";
 }
 bool JailRule::check_jail(){
-
+    GameController::currentPlayer->jail_update();
+    if(GameController::currentPlayer->jail_status()==0){
+        return false;
+    }
+    return true;
 }
 int JailRule::turns=0;
+void Player::pushProperty(Asset*owns){
+    owned.push_back(owns);
+}
+bool Player::checkbankcorrupcy (){
+    if(balance<=0){
+        return true;
+    }
+    return false;
+}
+void Player::jail_update(){
+    in_jail_chances+=1;
+    if(in_jail_chances==3){
+        in_jail_chances=0;
+    } 
+}
+bool Player::jail_status(){
+    if(in_jail_chances>0){
+        jail_update();
+        return true;
+    }
+    return false;
+}
 void Player::change_balance(int sum){
     balance+=sum;
 }
@@ -409,15 +460,14 @@ int Player::get_index(){
     return index;
 }
 vector<Rule*> CommunityChest::get_rules(){
-    srand(time(0));
-    int random=3+rand()%5;
+    int random=getRandomNumber(3,8);
     vector<Rule*> rules={GameController::rules[random]};
     return rules;
 }
 
 vector<Rule*> Chance::get_rules(){
     srand(time(0));
-    int random=8+rand()%5;
+    int random=getRandomNumber(8,13);
     vector<Rule*> rules={GameController::rules[random]};
     return rules;
 }
@@ -429,7 +479,7 @@ int TaxEvent::get_tax(){
     return tax;
 }
 vector<Rule*>  TaxEvent::get_rules(){
-    vector<Rule*> rules={GameController::rules[13]};
+    vector<Rule*> rules={GameController::rules[14]};
     return rules;
 }
 vector<Rule*> Property::get_rules(){
@@ -468,9 +518,8 @@ vector<Rule*> Commodity::get_rules(){
             return Rules;
         }
         else{
-            srand(time(0));
-            int roll1=1+rand()%6;
-            int roll2=1+rand()%6;
+            int roll1=getRandomNumber(1,6);
+            int roll2=getRandomNumber(1,6);
             rent=roll1+roll2;
             player->change_balance(roll1+roll2);
             vector<Rule*>rules={GameController::rules[2]};
@@ -494,9 +543,8 @@ void Commodity::assignOwner(Player *player){
 int Commodity::get_rent(){
     return rent;
 }
-
+int GameController::playerIndx=0;
 Player* GameController::currentPlayer=new Player("green");
-Tile* GameController::currentTile = new TaxEvent("GO",0);
 
 vector<Rule*> GameController::rules={
     new Skip,
@@ -567,35 +615,53 @@ vector <Tile*> GameController::board={
 
 vector<string> GameController::get_rule_txt(){
     vector<string> ruleTxts;
-    vector<Rule*>rules=currentTile->get_rules();
+    Tile *tile = GameController::board[GameController::currentPlayer->get_index()];
+    printTileInfo(tile);
+    vector<Rule*>rules=tile->get_rules();
     for(Rule *rule : rules){
         ruleTxts.push_back(rule->getTitle());
     }
     return ruleTxts;
 }
 
-void GameController::show_diceroll(int roll1, int roll2, int index){
-    cout<<"roll 1 : "<<roll1<<endl;
-    cout<<"roll 2 : "<<roll2<<endl;
-    cout<<"current player index : "<<index<<endl;
+void GameController::printTileInfo(Tile *tile) {
+    vector<Rule*> rules = tile->get_rules();
+    cout<<"number of rules "<<rules.size();
+    for(Rule * rule: rules) {
+        cout<<"Title "<<rule->getTitle();
+    }
 }
 
-void GameController::next_turn(int playerIdx){
+int GameController::show_diceroll(){
+    //now we'll wait till the button is clicked, when dice roll is clicked we'll execute this->
     srand(time(0));
     int roll1=1+rand()%6;
     int roll2=1+rand()%6;
-    currentPlayer = players.at(playerIdx);
-    show_diceroll(roll1,roll2, currentPlayer->change_index(5));
-    currentTile = board[currentPlayer->get_index()];
+    cout<<roll1+roll2;
+    return roll1+roll2;
+}
+
+void GameController::next_turn(){
+    currentPlayer = players.at(playerIndx);
+    while(currentPlayer->checkbankcorrupcy() || currentPlayer->jail_status()){
+        playerIndx+=1;
+        currentPlayer=players.at(playerIndx);
+    }
+    int playerBoardIdx = show_diceroll();
+    currentPlayer->change_index(playerBoardIdx);
     vector<string> strArr = get_rule_txt();
     show_rules(strArr);
 }
 
-void GameController::apply_rule(string player,vector<Rule*>Rules){
-
+void GameController::Apply_rule(int ruleIndex){
+    vector<Rule*>rules=GameController::board[GameController::currentPlayer->get_index()]->get_rules();
+    rules[ruleIndex]->apply_rule();
 }
-void GameController::show_rules(vector<string> ruleTxts) {
-    cout<<"rule : "<<ruleTxts[0];
+void GameController::show_rules(vector<string> ruleTxts){
+    for (string rule : ruleTxts) {
+        cout << "rule : " << rule<<endl;
+    }
+    Apply_rule(0);
 }
 void GameController::end_game(){
 
