@@ -4,9 +4,6 @@
 #include<cstdlib>
 #include<ctime>
 #include<conio.h>
-#include<chrono>
-#include <thread>
-#include <windows.h>
 
 using namespace std;
 
@@ -17,6 +14,7 @@ class Asset;
 class Rule;
 class GameController{
 public:
+    static vector<Rule*> currentRules;
     static int playerIndx;
     static Player *currentPlayer;
     static vector <Rule*> rules;
@@ -243,7 +241,7 @@ private:
     string name;
     bool owned;
     Buy buy;
-    Player *owner=NULL;
+    Player *owner=GameController::players[4];
 public:
     Property(string name,int price,int rent){
         this -> price=price;
@@ -262,8 +260,8 @@ class Commodity : public Asset{
 private:
     int price;
     string name;
-    bool owned;
-    Player *owner = NULL;
+    bool owned=false;
+    Player *owner = GameController::players[4];
     int rent;
 public:
     Commodity(string name,int price){
@@ -314,10 +312,9 @@ string Rent::getTitle(){
 void GeneralRule::apply_rule(){
     Player* player = GameController::currentPlayer;
     Tile* tile = GameController::board[player->get_index()];
-    if (TaxEvent* currentAsset = dynamic_cast<TaxEvent*>(tile)) {
-        int tax = currentAsset->get_tax();
-        player->change_balance(tax);
-    }
+    TaxEvent* currentAsset = dynamic_cast<TaxEvent*>(tile);
+    int tax = currentAsset->get_tax();
+    player->change_balance(tax);
 }
 string GeneralRule::getTitle(){
     return "";
@@ -434,7 +431,7 @@ bool Player::jail_status(){
     return false;
 }
 void Player::change_balance(int sum){
-    balance+=sum;
+    balance+=(sum/2);
 }
 void Player::edit_index(int i){
     index=i;
@@ -537,7 +534,7 @@ int Commodity::get_rent(){
 }
 int GameController::playerIndx=0;
 Player* GameController::currentPlayer=new Player("green");
-
+vector<Rule*> GameController::currentRules = {};
 vector<Rule*> GameController::rules={
     new Skip,
     new Buy,
@@ -559,7 +556,8 @@ vector<Player*> GameController::players ={
     new Player("red"),
     new Player("green"),
     new Player("blue"),
-    new Player("yellow")
+    new Player("yellow"),
+    new Player("grey")
 };
 
 vector <Tile*> GameController::board={
@@ -567,7 +565,7 @@ vector <Tile*> GameController::board={
     new Property("Mediterranean Avenue", 60, -2),
     new CommunityChest("Community Chest"),
     new Property("Baltic Avenue", 60, -4),
-    new TaxEvent("Income Tax", -200),
+    new TaxEvent("Income Tax", -100),
     new Commodity("Reading Railroad", 200),
     new Property("Oriental Avenue", 100, -6),
     new Chance("Chance"),
@@ -609,6 +607,7 @@ vector<string> GameController::get_rule_txt(){
     vector<string> ruleTxts;
     Tile *tile = GameController::board[GameController::currentPlayer->get_index()];
     vector<Rule*>rules=tile->get_rules();
+    currentRules=rules;
     for(Rule *rule : rules){
         ruleTxts.push_back(rule->getTitle());
     }
@@ -617,10 +616,8 @@ vector<string> GameController::get_rule_txt(){
 
 
 int GameController::show_diceroll(){
-    //now we'll wait till the button is clicked, when dice roll is clicked we'll execute this->
     int roll1=1+rand()%6;
     int roll2=1+rand()%6;
-    cout<<roll1+roll2;
     return roll1+roll2;
 }
 
@@ -638,26 +635,24 @@ void GameController::next_turn(){
 }
 
 void GameController::Apply_rule(int ruleIndex){
-    vector<Rule*>rules=GameController::board[GameController::currentPlayer->get_index()]->get_rules();
-    rules[ruleIndex]->apply_rule();
+    currentRules[ruleIndex]->apply_rule();
 }
 void GameController::show_rules(vector<string> ruleTxts){
     for (string rule : ruleTxts) {
         cout << "rule : " << rule<<endl;
     }
-    Apply_rule(1);
+    Apply_rule(0);
 }
 void GameController::end_game(){
-
 }
 void GameController::showBoard() {
     cout<<"board has been initialised"<<endl;
-    while(true){
-        //after dice roll->
+    for(int i=0;i<6;i++){
         GameController::next_turn();
         GameController::Apply_rule(0);
-        GameController::playerIndx = (GameController::playerIndx + 1) % GameController::players.size();
-        cout<<"balance :"<<currentPlayer->getBalance();
-    }
+        GameController::playerIndx = (GameController::playerIndx + 1) % ((GameController::players.size())-1);
+        cout<<"balance :"<<currentPlayer->getBalance()<<endl;
+        cout<<currentPlayer->get_name()<<endl;
+    } 
 }
 
