@@ -156,7 +156,7 @@ private:
 public:
     Player(string name){
         this -> name=name;
-        balance=100;
+        balance=1500;
         index=0;
     }
     vector<Asset*> Owned();
@@ -180,6 +180,7 @@ public:
 };
 class Asset : public Tile{
 public:
+    virtual void has_baught()=0;
     virtual int get_price()=0;
     virtual int get_rent()=0;
     ~Asset(){}
@@ -250,6 +251,7 @@ public:
         this -> name=name;
         owned=false;
     }
+    void has_baught();
     vector<Rule*> get_rules();
     int get_rent();
     void assignOwner(Player *player);
@@ -269,6 +271,7 @@ public:
         this -> price=price;
         this -> name=name;
     }
+    void has_baught();
     vector<Rule*> get_rules();
     int get_price();
     void assignOwner(Player *player);
@@ -289,6 +292,7 @@ string Skip::getTitle(){
 void Buy::apply_rule(){
     Player *player= GameController::currentPlayer;
     Asset *currentAsset = dynamic_cast<Asset*>(GameController::board[GameController::currentPlayer->get_index()]);
+    currentAsset->has_baught();
     player->pushProperty(currentAsset);
     int price = currentAsset->get_price();
     player->change_balance(-price);
@@ -300,11 +304,10 @@ string Buy::getTitle(){
 void Rent::apply_rule(){
     Player* player = GameController::currentPlayer;
     Tile* tile = GameController::board[player->get_index()];
-    if (Asset* currentAsset = dynamic_cast<Asset*>(tile)) {
+    Asset* currentAsset = dynamic_cast<Asset*>(tile);
         int rent = currentAsset->get_rent();
         player->change_balance(-rent); // Deduct rent
         // Pay rent to owner if applicable
-    }
 }
 string Rent::getTitle(){
     return "";
@@ -474,6 +477,9 @@ vector<Rule*>  TaxEvent::get_rules(){
     vector<Rule*> rules={GameController::rules[14]};
     return rules;
 }
+void Property::has_baught(){
+    owned=true;
+}
 vector<Rule*> Property::get_rules(){
     Player *player = GameController::currentPlayer;
     if(owned){
@@ -494,6 +500,7 @@ vector<Rule*> Property::get_rules(){
     }
     else{
         vector<Rule*>Rules={GameController::rules[0],GameController::rules[1]} ;
+        owned=true;
         return Rules;
     }
 }
@@ -532,8 +539,12 @@ vector<Rule*> Commodity::get_rules(){
         vector<Rule*>rules;
         rules.push_back(GameController::rules[0]);
         rules.push_back(GameController::rules[1]);
+        owned=true;
         return rules;
     }
+}
+void Commodity::has_baught(){
+    owned=true;
 }
 int Commodity::get_price(){
     return price;
@@ -631,6 +642,7 @@ vector<string> GameController::get_rule_txt(){
 int GameController::show_diceroll(){
     int roll1=1+rand()%6;
     int roll2=1+rand()%6;
+    cout<<roll1+roll2<<endl;
     return roll1+roll2;
 }
 
@@ -664,9 +676,16 @@ bool GameController::end_game(){
 }
 void GameController::showBoard() {
     cout<<"board has been initialised"<<endl;
-    for(int i=0;i<10;i++){
+    for(int i=0;i<6;i++){
+        
         GameController::next_turn();
-        GameController::Apply_rule(0);
+        if(currentRules.size()==1){
+            Apply_rule(0);
+        }
+        else{
+            Apply_rule(1);
+        }
+        currentRules.clear();
         GameController::playerIndx = (GameController::playerIndx + 1) % ((GameController::players.size())-1);
         cout<<"balance :"<<currentPlayer->getBalance()<<endl;
         cout<<currentPlayer->get_name()<<endl;
